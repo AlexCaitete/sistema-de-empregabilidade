@@ -84,18 +84,24 @@ classDiagram
 
 ---
 
-## ⚙️ O que implementei nesta Fase (Fase 1: Fundação & Mockups)
+## ⚙️ O que implementei na Fase 1: Fundação & Mockups
 Nesta primeira etapa, foquei na construção da base estrutural e arquitetural do back-end para garantir robustez e tipagem estática antes da introdução dos modelos de Inteligência Artificial:
 
 - **Modelagem de Dados Robusta (`modelos.py`):** Criei classes utilizando **Pydantic** (`BaseModel`, `Field`) e tipagem estática (`Optional`, `List`) totalmente em português brasileiro para validar meu perfil profissional (`PerfilProfissional`), minhas experiências e meus cursos/certificados (`CertificadoOuCurso`).
 - **API de Ingestão (`main.py`):** Configurei o servidor **FastAPI** contendo rotas assíncronas para upload de arquivos e persistência temporária (`/perfil/upload-certificado` e `/perfil`).
 - **Testes e Mockups:** Implementei dados simulados do meu perfil de usuário para validar o fluxo de requisições, o armazenamento em disco e a manipulação de listas e objetos antes de plugar serviços de IA externos.
 
+## ⚙️ O que implementei na Fase 2: Ingestão Real e Parser de Documentos
+Nesta segunda etapa, evoluí o back-end para processar ficheiros e dados reais diretamente do disco, eliminando os mockups estáticos e preparando o terreno para a extração automatizada:
+
+- **Parser de Documentos (`parser.py`):** Implementei a classe utilitária `DocumentParser` utilizando a biblioteca **`pypdf`** para realizar a leitura ponta a ponta de ficheiros PDF reais (como currículos e certificados), extraindo o texto bruto de forma estruturada.
+- **Upload Assíncrono e Multipart:** Configurei a rota assíncrona `/perfil/upload-certificado` no **FastAPI** utilizando a dependência **`python-multipart`** para receber ficheiros em formato binário via requisições HTTP POST.
+- **Ciclo de Vida do Arquivo:** Estruturei o fluxo de salvamento temporário no disco (`temp_uploads`), leitura bem-sucedida do conteúdo textual e remoção automática do ficheiro após o processamento, garantindo a limpeza e segurança do ambiente de execução.
 ---
 
 ## 🗺️ Roadmap / Evolução da Implementação
 - [x] **Fase 1:** Estruturação da API, rotas FastAPI, modelos Pydantic e simulação de dados/upload.
-- [ ] **Fase 2:** Implementação real do parser de documentos (leitura de PDFs/Certificados).
+- [x] **Fase 2:** Implementação real do parser de documentos (leitura de PDFs/Certificados).
 - [ ] **Fase 3:** Integração com LLMs (APIs de Inteligência Artificial) para extração semântica de conhecimentos.
 - [ ] **Fase 4:** Desenvolvimento dos Agentes de Busca de Vagas e Adaptação de Currículos.
 - [ ] **Fase 5:** Construção do Front-end em Next.js / TypeScript com painel interativo.
