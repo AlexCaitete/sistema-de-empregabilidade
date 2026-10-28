@@ -36,7 +36,7 @@ classDiagram
     }
 
     PerfilProfissional "1" --> "*" CertificadoOuCurso : gerencia
-
+```
 ---
    
 ## 🛠️ Stack Tecnológica
