@@ -8,15 +8,15 @@ Desenvolvi este ecossistema multiagente em **Python** e **FastAPI** para automat
 O objetivo do meu projeto é construir uma plataforma modular e orientada a serviços (microsserviços/agentes) que me ajude a gerenciar minha carreira de forma automatizada e inteligente. Estruturei o ecossistema em módulos especializados:
 
 1. **Agente de Ingestão de Conhecimento (`AgenteIngestaoConhecimento`)**: Responsável por processar meus uploads de certificados/documentos e atualizar dinamicamente o meu perfil técnico.
-2. **Agente Analista de Perfil (`AgenteAnalistaPerfil`)**: Mapeia minhas competências e alinha cargos compatíveis (planejado).
-3. **Agente Caçador de Vagas (`AgenteCacadorVagas`)**: Realiza varreduras por vagas alinhadas ao meu perfil no mercado (planejado).
-4. **Agente Alfaiate (`AgenteAlfaiateCurriculo`)**: Adapta meus currículos especificamente para as descrições das vagas desejadas (planejado).
+2. **Agente Analista de Perfil (`AgenteAnalistaPerfil`)**: Mapeia minhas competências e avalia o grau de compatibilidade com cargos e requisitos do mercado.
+3. **Agente Caçador de Vagas (`AgenteCacadorVagas`)**: Realiza varreduras automáticas por vagas alinhadas ao meu perfil técnico e desejos de carreira.
+4. **Agente Alfaiate (`AgenteAlfaiateCurriculo`)**: Adapta e reescreve meus currículos especificamente para as descrições das vagas desejadas.
 
 ---
 
-## 📊 Diagrama de Arquitetura & Classes (UML)
+## 📊 Diagrama de Arquitetura & Visão Global do Ecossistema (UML)
 
-Abaixo apresento a representação UML da estrutura de dados atual (modelos Pydantic) que garante a tipagem e a validação da minha API:
+Abaixo apresento a representação UML completa da arquitetura do projeto, englobando tanto os modelos de dados centrais quanto os agentes inteligentes planeidados para as próximas fases:
 
 ```mermaid
 classDiagram
@@ -35,7 +35,44 @@ classDiagram
         +Optional[str] data_conclusao
     }
 
+    class VagaEmprego {
+        +str titulo
+        +str empresa
+        +List[str] requisitos
+        +str descricao
+    }
+
+    class CurriculoAdaptado {
+        +PerfilProfissional perfil_base
+        +VagaEmprego vaga_alvo
+        +str conteudo_otimizado
+    }
+
+    class AgenteIngestaoConhecimento {
+        +processar_documento(file)
+        +atualizar_perfil(PerfilProfissional)
+    }
+
+    class AgenteAnalistaPerfil {
+        +analisar_compatibilidade(PerfilProfissional, VagaEmprego)
+    }
+
+    class AgenteCacadorVagas {
+        +buscar_vagas(criterios)
+        +List[VagaEmprego] vagas
+    }
+
+    class AgenteAlfaiateCurriculo {
+        +adaptar_curriculo(PerfilProfissional, VagaEmprego) CurriculoAdaptado
+    }
+
     PerfilProfissional "1" --> "*" CertificadoOuCurso : gerencia
+    AgenteIngestaoConhecimento --> PerfilProfissional : atualiza
+    AgenteAnalistaPerfil --> PerfilProfissional : analisa
+    AgenteAnalistaPerfil --> VagaEmprego : avalia
+    AgenteCacadorVagas --> VagaEmprego : descobre
+    AgenteAlfaiateCurriculo --> CurriculoAdaptado : gera
+    
 ```
 ---
    
