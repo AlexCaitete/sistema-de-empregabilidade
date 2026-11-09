@@ -18,13 +18,6 @@ class _EsquemaGeracaoAlfaiate(BaseModel):
 
 
 class AgenteAlfaiateCurriculo:
-    """
-    Agente Alfaiate de Currículo:
-    Adapta e reescreve o currículo do candidato especificamente para os
-    requisitos e palavras-chave de uma vaga de emprego desejada, aplicando
-    as regras de otimização para sistemas ATS (Gupy, Greenhouse, Workday, LinkedIn).
-    """
-
     MODELOS_DISPONIVEIS = [
         os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
         "gemini-2.5-flash",
@@ -45,10 +38,6 @@ class AgenteAlfaiateCurriculo:
     def adaptar_curriculo(
         self, perfil: PerfilProfissional, vaga: VagaEmprego
     ) -> CurriculoAdaptado:
-        """
-        Gera um CurriculoAdaptado personalizado para a vaga alvo a partir do PerfilProfissional,
-        otimizado para leitura automatizada por robôs de recrutamento (ATS).
-        """
         instrucao_ia = f"""
         Você é um especialista sênior em Recrutamento Técnico e algoritmos de triagem ATS
         (Applicant Tracking Systems como Gupy, Greenhouse, Workday e LinkedIn).
@@ -68,12 +57,7 @@ class AgenteAlfaiateCurriculo:
            - NÃO utilize emojis, tabelas, colunas ou caracteres gráficos especiais nos títulos das seções,
              pois eles prejudicam os parsers de ATS.
            - Utilize exatamente os títulos de seção padronizados para ATS:
-             # [Nome Completo]
-             **[Título exato da Vaga Alvo]**
-             ## RESUMO PROFISSIONAL
-             ## COMPETÊNCIAS TÉCNICAS
-             ## EXPERIÊNCIA PROFISSIONAL
-             ## CURSOS E CERTIFICAÇÕES
+             RESUMO PROFISSIONAL, COMPETÊNCIAS TÉCNICAS, EXPERIÊNCIA PROFISSIONAL, CURSOS E CERTIFICAÇÕES.
         4. Priorização por Relevância: Ordene as competências e os certificados colocando primeiro
            aqueles que têm relação direta com os requisitos da vaga alvo.
 
@@ -160,7 +144,6 @@ class AgenteAlfaiateCurriculo:
         b = termo_b.strip().lower()
         if a == b:
             return True
-        # Evita falso positivo clássico entre "java" e "javascript"
         if {a, b} == {"java", "javascript"}:
             return False
         palavras_a = set(a.replace("/", " ").replace("-", " ").split())
@@ -172,10 +155,6 @@ class AgenteAlfaiateCurriculo:
     def _adaptar_curriculo_contingencia(
         self, perfil: PerfilProfissional, vaga: VagaEmprego
     ) -> CurriculoAdaptado:
-        """
-        Gera localmente um currículo estruturado seguindo as regras de ATS
-        (correspondência de palavras-chave, seções padronizadas sem emojis e priorização).
-        """
         destacadas: List[str] = []
         outras: List[str] = []
 
@@ -214,17 +193,17 @@ class AgenteAlfaiateCurriculo:
                 for certificado in perfil.cursos_e_certificados
             ]
             secao_certificados = (
-                "\n## CURSOS E CERTIFICAÇÕES\n" + "\n".join(linhas_certificados) + "\n"
+                "\nCURSOS E CERTIFICAÇÕES\n" + "\n".join(linhas_certificados) + "\n"
             )
 
         curriculo_markdown = (
-            f"# {perfil.nome_completo}\n"
+            f"{perfil.nome_completo}\n"
             f"**Cargo Alvo: {vaga.titulo} | {vaga.empresa} ({vaga.localizacao or 'Remoto'})**\n\n"
-            f"## RESUMO PROFISSIONAL\n"
+            f"RESUMO PROFISSIONAL\n"
             f"{resumo}\n\n"
-            f"## COMPETÊNCIAS TÉCNICAS\n"
+            f"COMPETÊNCIAS TÉCNICAS\n"
             + "\n".join([f"- {competencia}" for competencia in competencias_ordenadas])
-            + "\n\n## EXPERIÊNCIA PROFISSIONAL\n"
+            + "\n\nEXPERIÊNCIA PROFISSIONAL\n"
             + "\n".join([f"- {experiencia}" for experiencia in experiencias_adaptadas])
             + "\n"
             + secao_certificados

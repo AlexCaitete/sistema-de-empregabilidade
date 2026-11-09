@@ -19,13 +19,6 @@ TipoEsquema = TypeVar("TipoEsquema", bound=BaseModel)
 
 
 class AgenteAnalista:
-    """
-    Agente Analista de Perfil (AgenteAnalistaPerfil):
-    Responsável por:
-    1. Extrair dados estruturados de currículos e certificados em PDF usando IA (Gemini).
-    2. Avaliar a compatibilidade entre o PerfilProfissional e uma VagaEmprego.
-    """
-
     MODELOS_DISPONIVEIS = [
         os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
         "gemini-2.5-flash",
@@ -46,10 +39,6 @@ class AgenteAnalista:
     def _chamar_gemini_estruturado(
         self, instrucao_ia: str, classe_esquema: Type[TipoEsquema]
     ) -> TipoEsquema:
-        """
-        Executa a chamada ao modelo Gemini utilizando saída estruturada (Pydantic Schema).
-        Tenta os modelos configurados em sequência caso ocorra erro de modelo indisponível.
-        """
         cliente_ia = self._obter_cliente()
 
         ultimo_erro: Optional[Exception] = None
@@ -103,10 +92,6 @@ class AgenteAnalista:
         raise RuntimeError("Não foi possível obter resposta estruturada do modelo de IA.")
 
     def analisar_texto_para_perfil(self, texto_bruto: str) -> PerfilProfissional:
-        """
-        Analisa o texto bruto extraído de um currículo ou documento profissional
-        e retorna um objeto PerfilProfissional validado.
-        """
         if not texto_bruto or len(texto_bruto.strip()) < 10:
             raise ValueError("O texto extraído do documento está vazio ou é insuficiente para análise.")
 
@@ -127,10 +112,6 @@ class AgenteAnalista:
             return self._extrair_perfil_contingencia(texto_bruto)
 
     def extrair_certificado_de_texto(self, texto_bruto: str) -> CertificadoOuCurso:
-        """
-        Analisa o texto bruto de um certificado de curso/formação e retorna
-        um objeto CertificadoOuCurso estruturado com título, instituição, tecnologias e data.
-        """
         if not texto_bruto or len(texto_bruto.strip()) < 10:
             raise ValueError("O texto extraído do certificado está vazio ou é insuficiente para análise.")
 
@@ -156,10 +137,6 @@ class AgenteAnalista:
     def analisar_compatibilidade(
         self, perfil: PerfilProfissional, vaga: VagaEmprego
     ) -> AnaliseCompatibilidade:
-        """
-        Compara o PerfilProfissional atual do candidato com os requisitos de uma VagaEmprego,
-        calculando o grau de compatibilidade e gerando recomendações práticas.
-        """
         instrucao_ia = f"""
         Você é um recrutador técnico sênior e especialista em carreira de tecnologia.
         Compare o Perfil Profissional do candidato com a Vaga de Emprego abaixo e gere
@@ -185,10 +162,6 @@ class AgenteAnalista:
             print("--- AVISO: Falha na chamada da API Gemini, calculando compatibilidade localmente ---")
             traceback.print_exc()
             return self._analisar_compatibilidade_contingencia(perfil, vaga)
-
-    # -------------------------------------------------------------------------
-    # Métodos de Contingência Local (funcionamento garantido mesmo offline)
-    # -------------------------------------------------------------------------
 
     def _extrair_certificado_contingencia(self, texto: str) -> CertificadoOuCurso:
         titulo = "Certificado Profissional"
@@ -326,5 +299,4 @@ class AgenteAnalista:
         )
 
 
-# Alias para manter compatibilidade direta com a nomenclatura do diagrama UML no README
 AgenteAnalistaPerfil = AgenteAnalista

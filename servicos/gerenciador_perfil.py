@@ -5,18 +5,10 @@ from servicos.banco_dados import GerenciadorBancoDados
 
 
 class GerenciadorPerfil:
-    """
-    Serviço responsável por persistir, carregar e atualizar os dados
-    do PerfilProfissional e seus certificados no banco de dados SQLite.
-    """
-
     def __init__(self, caminho_banco: str = "dados/empregabilidade.db"):
         self.banco = GerenciadorBancoDados(caminho_banco=caminho_banco)
 
     def _criar_perfil_inicial(self) -> PerfilProfissional:
-        """
-        Retorna um perfil base inicial caso o banco de dados ainda esteja vazio.
-        """
         return PerfilProfissional(
             nome_completo="Alex Roberto Alves Caitete",
             cargo_desejado="Desenvolvedor Full Stack Júnior",
@@ -38,10 +30,6 @@ class GerenciadorPerfil:
         )
 
     def obter_perfil(self) -> PerfilProfissional:
-        """
-        Carrega o perfil profissional e seus certificados a partir do banco SQLite.
-        Se ainda não existir registro, cria e salva o perfil inicial.
-        """
         with self.banco.obter_conexao() as conexao:
             cursor = conexao.cursor()
             cursor.execute(
@@ -81,9 +69,6 @@ class GerenciadorPerfil:
             )
 
     def salvar_perfil(self, perfil: PerfilProfissional) -> PerfilProfissional:
-        """
-        Salva ou atualiza o PerfilProfissional e seus certificados no banco SQLite.
-        """
         with self.banco.obter_conexao() as conexao:
             cursor = conexao.cursor()
 
@@ -130,10 +115,6 @@ class GerenciadorPerfil:
     def adicionar_certificado(
         self, novo_certificado: CertificadoOuCurso
     ) -> Tuple[PerfilProfissional, List[str]]:
-        """
-        Adiciona um novo certificado ao perfil no SQLite e mescla automaticamente as novas
-        tecnologias na lista de competências técnicas sem duplicar itens.
-        """
         perfil = self.obter_perfil()
 
         titulos_existentes = [

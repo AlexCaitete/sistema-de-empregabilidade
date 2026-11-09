@@ -8,11 +8,6 @@ from servicos.agente_analista import AgenteAnalista
 
 
 class ProcessadorDocumento:
-    """
-    Utilitário de leitura de documentos: responsável por ler e extrair
-    texto bruto de arquivos PDF (certificados, diplomas, currículos).
-    """
-
     @staticmethod
     def extrair_texto_de_pdf(caminho_arquivo: str) -> str:
         try:
@@ -62,12 +57,6 @@ class ProcessadorDocumento:
 
 
 class AgenteIngestaoConhecimento:
-    """
-    Agente de Ingestão de Conhecimento:
-    Coordena a leitura de PDFs de certificados ou currículos, extrai os conhecimentos
-    via AgenteAnalista e atualiza automaticamente o PerfilProfissional no GerenciadorPerfil.
-    """
-
     def __init__(
         self,
         gerenciador: Optional[GerenciadorPerfil] = None,
@@ -77,7 +66,6 @@ class AgenteIngestaoConhecimento:
         self.analista = analista or AgenteAnalista()
 
     async def processar_documento(self, arquivo: UploadFile) -> str:
-        """Extrai o texto bruto de um arquivo PDF enviado via upload."""
         texto = await ProcessadorDocumento.processar_upload(arquivo)
         if not texto:
             raise HTTPException(
@@ -87,14 +75,9 @@ class AgenteIngestaoConhecimento:
         return texto
 
     def atualizar_perfil(self, novo_perfil: PerfilProfissional) -> PerfilProfissional:
-        """Persiste um PerfilProfissional completo no gerenciador."""
         return self.gerenciador.salvar_perfil(novo_perfil)
 
     async def ingerir_certificado(self, arquivo: UploadFile) -> RespostaIngestaoCertificado:
-        """
-        Processa o upload de um certificado PDF, extrai os dados estruturados com IA
-        e adiciona as novas competências e o curso ao perfil do usuário.
-        """
         texto_extraido = await self.processar_documento(arquivo)
         certificado = self.analista.extrair_certificado_de_texto(texto_extraido)
         perfil_atualizado, novas_competencias = self.gerenciador.adicionar_certificado(certificado)

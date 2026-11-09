@@ -25,7 +25,6 @@ app = FastAPI(
     version="2.0.0",
 )
 
-# Configuração de CORS para permitir futura integração com o Front-end (Next.js)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -34,7 +33,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Instâncias dos serviços e agentes do ecossistema
 gerenciador_perfil = GerenciadorPerfil()
 analista = AgenteAnalista()
 agente_ingestao = AgenteIngestaoConhecimento(
@@ -47,7 +45,6 @@ alfaiate_curriculo = AgenteAlfaiateCurriculo()
 
 @app.get("/", tags=["Status"])
 async def verificar_status_api():
-    """Rota inicial de verificação de saúde da API."""
     return {
         "sistema": "Sistema Inteligente de Empregabilidade & Automação de Carreira",
         "versao": "2.0.0",
@@ -56,20 +53,13 @@ async def verificar_status_api():
     }
 
 
-# ============================================================================
-# 1. ROTAS DE PERFIL & INGESTÃO DE CONHECIMENTO
-# ============================================================================
-
-
 @app.get("/perfil", response_model=PerfilProfissional, tags=["1. Perfil & Ingestão"])
 async def obter_perfil():
-    """Retorna o perfil profissional atual salvo no sistema."""
     return gerenciador_perfil.obter_perfil()
 
 
 @app.put("/perfil", response_model=PerfilProfissional, tags=["1. Perfil & Ingestão"])
 async def atualizar_perfil(perfil: PerfilProfissional):
-    """Atualiza manualmente os dados do perfil profissional."""
     return gerenciador_perfil.salvar_perfil(perfil)
 
 
@@ -79,10 +69,6 @@ async def atualizar_perfil(perfil: PerfilProfissional):
     tags=["1. Perfil & Ingestão"],
 )
 async def analisar_documento(arquivo: UploadFile = File(...)):
-    """
-    Faz upload de um currículo ou documento em PDF, extrai os dados estruturados
-    utilizando IA (Gemini), salva e retorna o PerfilProfissional completo.
-    """
     try:
         texto_extraido = await ProcessadorDocumento.processar_upload(arquivo)
 
@@ -109,10 +95,6 @@ async def analisar_documento(arquivo: UploadFile = File(...)):
     tags=["1. Perfil & Ingestão"],
 )
 async def enviar_certificado(arquivo: UploadFile = File(...)):
-    """
-    Recebe um certificado em PDF, extrai curso, instituição e tecnologias via IA
-    e atualiza dinamicamente o perfil profissional com as novas competências.
-    """
     try:
         return await agente_ingestao.ingerir_certificado(arquivo)
     except HTTPException:
@@ -125,11 +107,6 @@ async def enviar_certificado(arquivo: UploadFile = File(...)):
         )
 
 
-# ============================================================================
-# 2. ROTAS DO AGENTE CAÇADOR DE VAGAS
-# ============================================================================
-
-
 @app.get("/vagas", response_model=List[VagaEmprego], tags=["2. Caçador de Vagas"])
 async def listar_ou_buscar_vagas(
     criterios: Optional[str] = Query(
@@ -137,10 +114,6 @@ async def listar_ou_buscar_vagas(
         description="Palavras-chave separadas por vírgula (ex: Python, FastAPI, Spring Boot)",
     )
 ):
-    """
-    Lista todas as vagas disponíveis ou filtra por critérios, ordenando pelas mais
-    alinhadas ao perfil profissional atual do usuário.
-    """
     perfil_atual = gerenciador_perfil.obter_perfil()
     return cacador_vagas.buscar_vagas(criterios=criterios, perfil=perfil_atual)
 
@@ -151,23 +124,13 @@ async def listar_ou_buscar_vagas(
     tags=["2. Caçador de Vagas"],
 )
 async def recomendar_vagas_para_perfil():
-    """
-    Retorna as vagas ranqueadas automaticamente pelo grau de aderência às
-    competências técnicas atuais do perfil do usuário.
-    """
     perfil_atual = gerenciador_perfil.obter_perfil()
     return cacador_vagas.buscar_vagas(perfil=perfil_atual)
 
 
 @app.post("/vagas", response_model=VagaEmprego, tags=["2. Caçador de Vagas"])
 async def cadastrar_vaga(vaga: VagaEmprego):
-    """Cadastra uma nova vaga de emprego para análise e adaptação de currículo."""
     return cacador_vagas.adicionar_vaga(vaga)
-
-
-# ============================================================================
-# 3. ROTAS DO AGENTE ANALISTA DE COMPATIBILIDADE
-# ============================================================================
 
 
 @app.post(
@@ -176,10 +139,6 @@ async def cadastrar_vaga(vaga: VagaEmprego):
     tags=["3. Analista de Perfil"],
 )
 async def analisar_compatibilidade_vaga(vaga: VagaEmprego):
-    """
-    Avalia o grau de compatibilidade entre o PerfilProfissional atual e uma
-    VagaEmprego informada no corpo da requisição.
-    """
     try:
         perfil_atual = gerenciador_perfil.obter_perfil()
         return analista.analisar_compatibilidade(perfil_atual, vaga)
@@ -197,10 +156,6 @@ async def analisar_compatibilidade_vaga(vaga: VagaEmprego):
     tags=["3. Analista de Perfil"],
 )
 async def analisar_compatibilidade_por_id(id_vaga: str):
-    """
-    Avalia o grau de compatibilidade entre o PerfilProfissional atual e uma
-    vaga já cadastrada no sistema (ex: vaga-01, vaga-02, vaga-03, vaga-04).
-    """
     vaga = cacador_vagas.obter_vaga_por_id(id_vaga)
     if not vaga:
         raise HTTPException(status_code=404, detail=f"Vaga '{id_vaga}' não encontrada.")
@@ -209,21 +164,12 @@ async def analisar_compatibilidade_por_id(id_vaga: str):
     return analista.analisar_compatibilidade(perfil_atual, vaga)
 
 
-# ============================================================================
-# 4. ROTAS DO AGENTE ALFAIATE DE CURRÍCULO
-# ============================================================================
-
-
 @app.post(
     "/curriculo/adaptar",
     response_model=CurriculoAdaptado,
     tags=["4. Alfaiate de Currículo"],
 )
 async def adaptar_curriculo_para_vaga(vaga: VagaEmprego):
-    """
-    Reescreve e adapta o currículo do usuário destacando as experiências e
-    competências mais relevantes para a VagaEmprego enviada.
-    """
     try:
         perfil_atual = gerenciador_perfil.obter_perfil()
         return alfaiate_curriculo.adaptar_curriculo(perfil_atual, vaga)
@@ -241,10 +187,6 @@ async def adaptar_curriculo_para_vaga(vaga: VagaEmprego):
     tags=["4. Alfaiate de Currículo"],
 )
 async def adaptar_curriculo_por_id(id_vaga: str):
-    """
-    Gera um currículo adaptado especificamente para uma vaga cadastrada pelo seu ID
-    (ex: vaga-01, vaga-02, vaga-03, vaga-04).
-    """
     vaga = cacador_vagas.obter_vaga_por_id(id_vaga)
     if not vaga:
         raise HTTPException(status_code=404, detail=f"Vaga '{id_vaga}' não encontrada.")

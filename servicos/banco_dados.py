@@ -3,11 +3,6 @@ import sqlite3
 
 
 class GerenciadorBancoDados:
-    """
-    Serviço responsável pela conexão e criação das tabelas no banco de dados
-    relacional SQLite (nativo do Python).
-    """
-
     def __init__(self, caminho_banco: str = "dados/empregabilidade.db"):
         self.caminho_banco = caminho_banco
         self._garantir_diretorio()
@@ -19,13 +14,11 @@ class GerenciadorBancoDados:
             os.makedirs(diretorio, exist_ok=True)
 
     def obter_conexao(self) -> sqlite3.Connection:
-        """Retorna uma nova conexão com o banco SQLite configurada para acesso por nome de coluna."""
         conexao = sqlite3.connect(self.caminho_banco)
         conexao.row_factory = sqlite3.Row
         return conexao
 
     def _inicializar_tabelas(self) -> None:
-        """Cria as tabelas do sistema caso ainda não existam no arquivo .db."""
         with self.obter_conexao() as conexao:
             cursor = conexao.cursor()
 

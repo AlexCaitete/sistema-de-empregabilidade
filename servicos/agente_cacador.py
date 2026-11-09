@@ -5,12 +5,6 @@ from servicos.banco_dados import GerenciadorBancoDados
 
 
 class AgenteCacadorVagas:
-    """
-    Agente Caçador de Vagas:
-    Responsável por armazenar no banco SQLite, filtrar e ranquear vagas de emprego
-    alinhadas ao perfil técnico e objetivos de carreira do usuário.
-    """
-
     def __init__(self, caminho_banco: str = "dados/empregabilidade.db"):
         self.banco = GerenciadorBancoDados(caminho_banco=caminho_banco)
         self.vagas: List[VagaEmprego] = self._carregar_vagas()
@@ -134,19 +128,16 @@ class AgenteCacadorVagas:
             conexao.commit()
 
     def listar_vagas(self) -> List[VagaEmprego]:
-        """Retorna todas as vagas cadastradas no banco SQLite."""
         self.vagas = self._carregar_vagas()
         return self.vagas
 
     def obter_vaga_por_id(self, id_vaga: str) -> Optional[VagaEmprego]:
-        """Busca uma vaga específica pelo seu ID no banco SQLite."""
         for vaga in self.listar_vagas():
             if vaga.id == id_vaga:
                 return vaga
         return None
 
     def adicionar_vaga(self, nova_vaga: VagaEmprego) -> VagaEmprego:
-        """Cadastra uma nova vaga no banco de dados SQLite."""
         vagas = self.listar_vagas()
         if not nova_vaga.id:
             nova_vaga.id = f"vaga-{len(vagas) + 1:02d}"
@@ -171,10 +162,6 @@ class AgenteCacadorVagas:
         criterios: Optional[str] = None,
         perfil: Optional[PerfilProfissional] = None,
     ) -> List[VagaEmprego]:
-        """
-        Busca e ordena as vagas de acordo com palavras-chave (criterios)
-        e/ou com as competências técnicas do PerfilProfissional do candidato.
-        """
         vagas = self.listar_vagas()
 
         if criterios:
