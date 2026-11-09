@@ -1,25 +1,19 @@
 import json
-import os
 from typing import List, Optional
 from modelos import VagaEmprego, PerfilProfissional
+from servicos.banco_dados import GerenciadorBancoDados
 
 
 class AgenteCacadorVagas:
     """
     Agente Caçador de Vagas:
-    Responsável por armazenar, filtrar e ranquear vagas de emprego alinhadas
-    ao perfil técnico e objetivos de carreira do usuário.
+    Responsável por armazenar no banco SQLite, filtrar e ranquear vagas de emprego
+    alinhadas ao perfil técnico e objetivos de carreira do usuário.
     """
 
-    def __init__(self, caminho_arquivo: str = "dados/vagas_disponiveis.json"):
-        self.caminho_arquivo = caminho_arquivo
-        self._garantir_diretorio()
+    def __init__(self, caminho_banco: str = "dados/empregabilidade.db"):
+        self.banco = GerenciadorBancoDados(caminho_banco=caminho_banco)
         self.vagas: List[VagaEmprego] = self._carregar_vagas()
-
-    def _garantir_diretorio(self) -> None:
-        diretorio = os.path.dirname(self.caminho_arquivo)
-        if diretorio:
-            os.makedirs(diretorio, exist_ok=True)
 
     def _vagas_iniciais(self) -> List[VagaEmprego]:
         return [
@@ -83,50 +77,81 @@ class AgenteCacadorVagas:
         ]
 
     def _carregar_vagas(self) -> List[VagaEmprego]:
-        if not os.path.exists(self.caminho_arquivo):
-            vagas = self._vagas_iniciais()
-            self._salvar_vagas(vagas)
-            return vagas
-
-        try:
-            with open(self.caminho_arquivo, "r", encoding="utf-8") as arquivo_json:
-                dados = json.load(arquivo_json)
-            return [VagaEmprego.model_validate(item_vaga) for item_vaga in dados]
-        except Exception:
-            vagas = self._vagas_iniciais()
-            self._salvar_vagas(vagas)
-            return vagas
-
-    def _salvar_vagas(self, vagas: List[VagaEmprego]) -> None:
-        self._garantir_diretorio()
-        with open(self.caminho_arquivo, "w", encoding="utf-8") as arquivo_json:
-            json.dump(
-                [vaga_item.model_dump() for vaga_item in vagas],
-                arquivo_json,
-                ensure_ascii=False,
-                indent=4,
+        with self.banco.obter_conexao() as conexao:
+            cursor = conexao.cursor()
+            cursor.execute(
+                "SELECT id, titulo, empresa, requisitos_json, descricao, localizacao, nivel "
+                "FROM vagas_emprego ORDER BY id ASC"
             )
+            linhas = cursor.fetchall()
+
+            if not linhas:
+                vagas_padrao = self._vagas_iniciais()
+                for vaga in vagas_padrao:
+                    self._inserir_vaga_no_banco(vaga)
+                return vagas_padrao
+
+            vagas_carregadas: List[VagaEmprego] = []
+            for linha in linhas:
+                vagas_carregadas.append(
+                    VagaEmprego(
+                        id=linha["id"],
+                        titulo=linha["titulo"],
+                        empresa=linha["empresa"],
+                        requisitos=json.loads(linha["requisitos_json"]),
+                        descricao=linha["descricao"],
+                        localizacao=linha["localizacao"],
+                        nivel=linha["nivel"],
+                    )
+                )
+            return vagas_carregadas
+
+    def _inserir_vaga_no_banco(self, vaga: VagaEmprego) -> None:
+        with self.banco.obter_conexao() as conexao:
+            cursor = conexao.cursor()
+            cursor.execute(
+                """
+                INSERT INTO vagas_emprego (id, titulo, empresa, requisitos_json, descricao, localizacao, nivel)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(id) DO UPDATE SET
+                    titulo = excluded.titulo,
+                    empresa = excluded.empresa,
+                    requisitos_json = excluded.requisitos_json,
+                    descricao = excluded.descricao,
+                    localizacao = excluded.localizacao,
+                    nivel = excluded.nivel
+                """,
+                (
+                    vaga.id,
+                    vaga.titulo,
+                    vaga.empresa,
+                    json.dumps(vaga.requisitos, ensure_ascii=False),
+                    vaga.descricao,
+                    vaga.localizacao,
+                    vaga.nivel,
+                ),
+            )
+            conexao.commit()
 
     def listar_vagas(self) -> List[VagaEmprego]:
-        """Retorna todas as vagas cadastradas."""
+        """Retorna todas as vagas cadastradas no banco SQLite."""
         self.vagas = self._carregar_vagas()
         return self.vagas
 
     def obter_vaga_por_id(self, id_vaga: str) -> Optional[VagaEmprego]:
-        """Busca uma vaga específica pelo seu ID."""
+        """Busca uma vaga específica pelo seu ID no banco SQLite."""
         for vaga in self.listar_vagas():
             if vaga.id == id_vaga:
                 return vaga
         return None
 
     def adicionar_vaga(self, nova_vaga: VagaEmprego) -> VagaEmprego:
-        """Cadastra uma nova vaga no repositório local."""
+        """Cadastra uma nova vaga no banco de dados SQLite."""
         vagas = self.listar_vagas()
         if not nova_vaga.id:
             nova_vaga.id = f"vaga-{len(vagas) + 1:02d}"
-        vagas.append(nova_vaga)
-        self._salvar_vagas(vagas)
-        self.vagas = vagas
+        self._inserir_vaga_no_banco(nova_vaga)
+        self.vagas = self._carregar_vagas()
         return nova_vaga
 
     @staticmethod

@@ -105,9 +105,9 @@ classDiagram
 - **Linguagem:** Python 3.10+
 - **Framework Web:** FastAPI + Uvicorn
 - **Validação de Dados:** Pydantic v2
+- **Banco de Dados:** SQLite (`sqlite3` nativo do Python)
 - **Inteligência Artificial:** Google GenAI SDK (`google-genai`)
 - **Processamento de PDF:** `pypdf` & `python-multipart`
-- **Persistência Local:** JSON estruturado (`dados/`)
 - **Controle de Versão:** Git & GitHub
 
 ---
@@ -117,13 +117,13 @@ classDiagram
 ```text
 sistema_empregabilidade/
 ├── dados/
-│   ├── perfil_profissional.json      # Persistência automática do perfil do usuário
-│   └── vagas_disponiveis.json        # Repositório local de vagas de emprego
+│   └── empregabilidade.db            # Banco de dados relacional SQLite (perfil, certificados e vagas)
 ├── servicos/
-│   ├── agente_alfaiate.py            # Agente Alfaiate (reescrita e adaptação de currículos)
+│   ├── agente_alfaiate.py            # Agente Alfaiate (reescrita e adaptação de currículos ATS)
 │   ├── agente_analista.py            # Agente Analista (extração IA e cálculo de compatibilidade)
-│   ├── agente_cacador.py             # Agente Caçador de Vagas (busca e ranqueamento por match)
-│   ├── gerenciador_perfil.py         # Serviço de persistência e fusão incremental de competências
+│   ├── agente_cacador.py             # Agente Caçador de Vagas (busca e ranqueamento no SQLite)
+│   ├── banco_dados.py                # GerenciadorBancoDados (conexão e criação de tabelas SQLite)
+│   ├── gerenciador_perfil.py         # Serviço de persistência SQL e fusão incremental de competências
 │   └── processador_arquivo.py        # ProcessadorDocumento e AgenteIngestaoConhecimento
 ├── uploads/                          # Certificados PDF de exemplo para testes
 ├── main.py                           # Servidor FastAPI e rotas da API
@@ -145,9 +145,9 @@ sistema_empregabilidade/
 - **Processador de Documentos (`servicos/processador_arquivo.py` e `parser.py`):** Classe utilitária `ProcessadorDocumento` utilizando **`pypdf`** para leitura ponta a ponta de ficheiros PDF reais.
 - **Ciclo de Vida Seguro do Arquivo:** Salvamento temporário em `temp_uploads`, sanitização do nome do arquivo e remoção automática no bloco `finally`.
 
-### Fase 3: Extração Estruturada com IA (Gemini) & Persistência Incremental
+### Fase 3: Extração Estruturada com IA (Gemini) & Persistência SQLite
 - **Integração com o Google GenAI SDK (`servicos/agente_analista.py`):** Uso de *Structured Outputs* (`response_schema`) para extrair tanto currículos completos (`PerfilProfissional`) quanto certificados individuais (`CertificadoOuCurso`), contando também com modo de contingência (fallback local) para alta disponibilidade.
-- **Gerenciador de Perfil (`servicos/gerenciador_perfil.py`) e `AgenteIngestaoConhecimento`:** Persistência em JSON (`dados/perfil_profissional.json`) e fusão inteligente de competências — ao enviar um novo certificado PDF em `/perfil/upload-certificado`, o sistema extrai as tecnologias aprendidas e atualiza o perfil sem duplicar itens.
+- **Banco de Dados SQLite (`servicos/banco_dados.py`, `servicos/gerenciador_perfil.py`) e `AgenteIngestaoConhecimento`:** Persistência relacional em SQLite (`dados/empregabilidade.db` com tabelas `perfil_profissional`, `certificados` e `vagas_emprego`) e fusão inteligente de competências — ao enviar um novo certificado PDF em `/perfil/upload-certificado`, o sistema extrai as tecnologias aprendidas e atualiza o perfil no banco sem duplicar itens.
 
 ### Fase 4: Agentes de Compatibilidade, Caça de Vagas e Alfaiate de Currículos
 - **Agente Caçador de Vagas (`servicos/agente_cacador.py`):** Filtra vagas por palavras-chave e ordena automaticamente as oportunidades de acordo com a pontuação de compatibilidade com as competências atuais do perfil.
