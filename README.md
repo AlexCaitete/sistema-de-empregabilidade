@@ -10,14 +10,14 @@ O objetivo do meu projeto é construir uma plataforma modular e orientada a serv
 
 1. **Agente de Ingestão de Conhecimento (`AgenteIngestaoConhecimento`)**: Responsável por processar meus uploads de certificados/documentos e atualizar dinamicamente o meu perfil técnico.
 2. **Agente Analista de Perfil (`AgenteAnalistaPerfil`)**: Mapeia minhas competências e avalia o grau de compatibilidade com cargos e requisitos do mercado.
-3. **Agente Caçador de Vagas (`AgenteCacadorVagas`)**: Realiza varreduras automáticas por vagas alinhadas ao meu perfil técnico e desejos de carreira.
+3. **Agente Caçador de Vagas (`AgenteCacadorVagas`)**: Realiza varreduras e ranqueamento de vagas alinhadas ao meu perfil técnico e desejos de carreira.
 4. **Agente Alfaiate (`AgenteAlfaiateCurriculo`)**: Adapta e reescreve meus currículos especificamente para as descrições das vagas desejadas.
 
 ---
 
 ## 📊 Diagrama de Arquitetura & Visão Global do Ecossistema (UML)
 
-Abaixo apresento a representação UML completa da arquitetura do projeto, englobando tanto os modelos de dados centrais quanto os agentes inteligentes planeidados para as próximas fases:
+Abaixo apresento a representação UML completa da arquitetura do projeto, englobando tanto os modelos de dados centrais quanto os agentes inteligentes implementados no back-end:
 
 ```mermaid
 classDiagram
@@ -43,19 +43,38 @@ classDiagram
         +str descricao
     }
 
+    class AnaliseCompatibilidade {
+        +int percentual_compatibilidade
+        +List[str] competencias_em_comum
+        +List[str] competencias_faltantes
+        +List[str] recomendacoes_estudo
+        +str parecer_geral
+    }
+
     class CurriculoAdaptado {
         +PerfilProfissional perfil_base
         +VagaEmprego vaga_alvo
+        +str resumo_profissional_otimizado
+        +List[str] competencias_destacadas
         +str conteudo_otimizado
     }
 
+    class GerenciadorPerfil {
+        +obter_perfil() PerfilProfissional
+        +salvar_perfil(PerfilProfissional)
+        +adicionar_certificado(CertificadoOuCurso)
+    }
+
     class AgenteIngestaoConhecimento {
-        +processar_documento(file)
+        +processar_documento(arquivo)
         +atualizar_perfil(PerfilProfissional)
+        +ingerir_certificado(arquivo)
     }
 
     class AgenteAnalistaPerfil {
-        +analisar_compatibilidade(PerfilProfissional, VagaEmprego)
+        +analisar_texto_para_perfil(texto_bruto) PerfilProfissional
+        +extrair_certificado_de_texto(texto_bruto) CertificadoOuCurso
+        +analisar_compatibilidade(PerfilProfissional, VagaEmprego) AnaliseCompatibilidade
     }
 
     class AgenteCacadorVagas {
@@ -68,9 +87,12 @@ classDiagram
     }
 
     PerfilProfissional "1" --> "*" CertificadoOuCurso : gerencia
+    GerenciadorPerfil --> PerfilProfissional : persiste
+    AgenteIngestaoConhecimento --> GerenciadorPerfil : utiliza
     AgenteIngestaoConhecimento --> PerfilProfissional : atualiza
     AgenteAnalistaPerfil --> PerfilProfissional : analisa
     AgenteAnalistaPerfil --> VagaEmprego : avalia
+    AgenteAnalistaPerfil --> AnaliseCompatibilidade : gera
     AgenteCacadorVagas --> VagaEmprego : descobre
     AgenteAlfaiateCurriculo --> CurriculoAdaptado : gera
 
@@ -81,40 +103,79 @@ classDiagram
 ## 🛠️ Stack Tecnológica
 
 - **Linguagem:** Python 3.10+
-- **Framework Web:** FastAPI
-- **Validação de Dados:** Pydantic
+- **Framework Web:** FastAPI + Uvicorn
+- **Validação de Dados:** Pydantic v2
+- **Inteligência Artificial:** Google GenAI SDK (`google-genai`)
+- **Processamento de PDF:** `pypdf` & `python-multipart`
+- **Persistência Local:** JSON estruturado (`dados/`)
 - **Controle de Versão:** Git & GitHub
 
 ---
 
-## ⚙️ O que implementei na Fase 1: Fundação & Mockups
+## 📂 Estrutura de Pastas do Projeto
 
-Nesta primeira etapa, foquei na construção da base estrutural e arquitetural do back-end para garantir robustez e tipagem estática antes da introdução dos modelos de Inteligência Artificial:
+```text
+sistema_empregabilidade/
+├── dados/
+│   ├── perfil_profissional.json      # Persistência automática do perfil do usuário
+│   └── vagas_disponiveis.json        # Repositório local de vagas de emprego
+├── servicos/
+│   ├── agente_alfaiate.py            # Agente Alfaiate (reescrita e adaptação de currículos)
+│   ├── agente_analista.py            # Agente Analista (extração IA e cálculo de compatibilidade)
+│   ├── agente_cacador.py             # Agente Caçador de Vagas (busca e ranqueamento por match)
+│   ├── gerenciador_perfil.py         # Serviço de persistência e fusão incremental de competências
+│   └── processador_arquivo.py        # ProcessadorDocumento e AgenteIngestaoConhecimento
+├── uploads/                          # Certificados PDF de exemplo para testes
+├── main.py                           # Servidor FastAPI e rotas da API
+├── modelos.py                        # Schemas e contratos Pydantic
+├── parser.py                         # Módulo de compatibilidade do ProcessadorDocumento
+├── requirements.txt                  # Dependências do projeto
+└── README.md                         # Documentação geral
+```
 
-- **Modelagem de Dados Robusta (`modelos.py`):** Criei classes utilizando **Pydantic** (`BaseModel`, `Field`) e tipagem estática (`Optional`, `List`) totalmente em português brasileiro para validar meu perfil profissional (`PerfilProfissional`), minhas experiências e meus cursos/certificados (`CertificadoOuCurso`).
-- **API de Ingestão (`main.py`):** Configurei o servidor **FastAPI** contendo rotas assíncronas para upload de arquivos e persistência temporária (`/perfil/upload-certificado` e `/perfil`).
-- **Testes e Mockups:** Implementei dados simulados do meu perfil de usuário para validar o fluxo de requisições, o armazenamento em disco e a manipulação de listas e objetos antes de plugar serviços de IA externos.
+---
 
-## ⚙️ O que implementei na Fase 2: Ingestão Real e Parser de Documentos
+## ⚙️ Evolução das Fases Implementadas
 
-Nesta segunda etapa, evoluí o back-end para processar ficheiros e dados reais diretamente do disco, eliminando os mockups estáticos e preparando o terreno para a extração automatizada:
+### Fase 1: Fundação & Modelagem de Dados
+- **Modelagem de Dados Robusta (`modelos.py`):** Classes em **Pydantic** (`BaseModel`, `Field`) e tipagem estática (`Optional`, `List`) em português brasileiro para validar o perfil profissional (`PerfilProfissional`), certificados (`CertificadoOuCurso`), vagas (`VagaEmprego`), relatórios de aderência (`AnaliseCompatibilidade`) e currículos otimizados (`CurriculoAdaptado`).
+- **API Base (`main.py`):** Configuração do servidor **FastAPI** com documentação Swagger automática (`/docs`) e middleware CORS.
 
-- **Parser de Documentos (`parser.py`):** Implementei a classe utilitária `DocumentParser` utilizando a biblioteca **`pypdf`** para realizar a leitura ponta a ponta de ficheiros PDF reais (como currículos e certificados), extraindo o texto bruto de forma estruturada.
-- **Upload Assíncrono e Multipart:** Configurei a rota assíncrona `/perfil/upload-certificado` no **FastAPI** utilizando a dependência **`python-multipart`** para receber ficheiros em formato binário via requisições HTTP POST.
-- **Ciclo de Vida do Arquivo:** Estruturei o fluxo de salvamento temporário no disco (`temp_uploads`), leitura bem-sucedida do conteúdo textual e remoção automática do ficheiro após o processamento, garantindo a limpeza e segurança do ambiente de execução.
+### Fase 2: Ingestão Real e Parser de Documentos
+- **Processador de Documentos (`servicos/processador_arquivo.py` e `parser.py`):** Classe utilitária `ProcessadorDocumento` utilizando **`pypdf`** para leitura ponta a ponta de ficheiros PDF reais.
+- **Ciclo de Vida Seguro do Arquivo:** Salvamento temporário em `temp_uploads`, sanitização do nome do arquivo e remoção automática no bloco `finally`.
 
-## 🚀 Fase 3: Extração de Dados Estruturados com Inteligência Artificial (Gemini)
+### Fase 3: Extração Estruturada com IA (Gemini) & Persistência Incremental
+- **Integração com o Google GenAI SDK (`servicos/agente_analista.py`):** Uso de *Structured Outputs* (`response_schema`) para extrair tanto currículos completos (`PerfilProfissional`) quanto certificados individuais (`CertificadoOuCurso`), contando também com modo de contingência (fallback local) para alta disponibilidade.
+- **Gerenciador de Perfil (`servicos/gerenciador_perfil.py`) e `AgenteIngestaoConhecimento`:** Persistência em JSON (`dados/perfil_profissional.json`) e fusão inteligente de competências — ao enviar um novo certificado PDF em `/perfil/upload-certificado`, o sistema extrai as tecnologias aprendidas e atualiza o perfil sem duplicar itens.
 
-## 3.1
+### Fase 4: Agentes de Compatibilidade, Caça de Vagas e Alfaiate de Currículos
+- **Agente Caçador de Vagas (`servicos/agente_cacador.py`):** Filtra vagas por palavras-chave e ordena automaticamente as oportunidades de acordo com a pontuação de compatibilidade com as competências atuais do perfil.
+- **Análise de Compatibilidade (`AgenteAnalista.analisar_compatibilidade`):** Compara o `PerfilProfissional` com qualquer `VagaEmprego`, calculando o percentual de aderência (0 a 100%), competências em comum, competências faltantes (gaps) e recomendações práticas de estudo.
+- **Agente Alfaiate (`servicos/agente_alfaiate.py`):** Adapta o currículo do usuário para uma vaga específica (`/curriculo/adaptar`), destacando as competências mais relevantes e gerando o currículo completo em Markdown pronto para uso.
 
-Nesta fase, implementámos o pipeline completo de processamento e análise semântica de currículos e documentos em PDF utilizando o FastAPI em conjunto com a nova SDK oficial do Google (`google-genai`) e o Pydantic (`PerfilProfissional`).
+---
 
-### 🛠️ O que foi feito:
+## 🚀 Como Executar o Projeto
 
-- **Integração com o Google GenAI SDK:** Configuração do cliente oficial do Gemini (`gemini-3.8-flash`) para processamento inteligente de linguagem natural.
-- **Validação e Schema com Pydantic:** Estruturação automatizada dos dados extraídos (nome completo, cargo desejado, competências técnicas, experiências e histórico de cursos/certificados) garantindo tipagem rigorosa.
-- **Endpoint Assíncrono (`/perfil/analisar-documento`):** Criação da rota no FastAPI para upload de ficheiros PDF, extração de texto bruto e mapeamento estruturado via IA.
-- **Tratamento de Exceções e Resiliência:** Implementação de capturas de traceback detalhadas e tratamento defensivo de respostas para garantir alta estabilidade no servidor local.
+1. **Ative o ambiente virtual e instale as dependências:**
+   ```bash
+   .\.venv\Scripts\activate
+   pip install -r requirements.txt
+   ```
+
+2. **Configure a variável de ambiente no arquivo `.env`:**
+   ```env
+   GEMINI_API_KEY=sua_chave_aqui
+   ```
+
+3. **Inicie o servidor FastAPI:**
+   ```bash
+   uvicorn main:app --reload
+   ```
+
+4. **Acesse a documentação interativa (Swagger UI):**
+   - Abra no navegador: `http://127.0.0.1:8000/docs`
 
 ---
 
@@ -122,6 +183,6 @@ Nesta fase, implementámos o pipeline completo de processamento e análise semâ
 
 - [x] **Fase 1:** Estruturação da API, rotas FastAPI, modelos Pydantic e simulação de dados/upload.
 - [x] **Fase 2:** Implementação real do parser de documentos (leitura de PDFs/Certificados).
-- [ ] **Fase 3:** Integração com LLMs (APIs de Inteligência Artificial) para extração semântica de conhecimentos.
-- [ ] **Fase 4:** Desenvolvimento dos Agentes de Busca de Vagas e Adaptação de Currículos.
+- [x] **Fase 3:** Integração com LLMs (Google Gemini) para extração semântica de conhecimentos e persistência de perfil.
+- [x] **Fase 4:** Desenvolvimento dos Agentes de Busca de Vagas, Análise de Compatibilidade e Adaptação de Currículos.
 - [ ] **Fase 5:** Construção do Front-end em Next.js / TypeScript com painel interativo.

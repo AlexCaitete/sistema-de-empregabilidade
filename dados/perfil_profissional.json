@@ -1,0 +1,45 @@
+{
+    "nome_completo": "Alex Roberto Alves Caitete",
+    "cargo_desejado": "Desenvolvedor Full Stack Júnior",
+    "competencias_tecnicas": [
+        "Python",
+        "FastAPI",
+        "JavaScript",
+        "React",
+        "Node.js",
+        "Git",
+        "SQL",
+        "Spring Boot",
+        "Annotations",
+        "Controller",
+        "Component Scan",
+        "API Rest",
+        "Path",
+        "Body e Header Params",
+        "Response Entity",
+        "IoC DI"
+    ],
+    "experiencias": [
+        "Desenvolvimento de APIs RESTful utilizando Python, FastAPI e validação de dados com Pydantic.",
+        "Integração de sistemas back-end com modelos de Inteligência Artificial (Google Gemini SDK).",
+        "Construção de aplicações web modernas utilizando JavaScript, React e Node.js."
+    ],
+    "cursos_e_certificados": [
+        {
+            "titulo": "Fundamentos do Spring Boot",
+            "instituicao": "Faculdade de Tecnologia Rocketseat",
+            "tecnologias_adquiridas": [
+                "Spring Boot",
+                "Annotations",
+                "Controller",
+                "Component Scan",
+                "API Rest",
+                "Path",
+                "Body e Header Params",
+                "Response Entity",
+                "IoC DI"
+            ],
+            "data_conclusao": "09/09/2026"
+        }
+    ]
+}
